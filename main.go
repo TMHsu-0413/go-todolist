@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -29,18 +28,24 @@ func connect() *mgo.Session {
 }
 
 func main() {
-	server := gin.Default()
-	server.GET("/", Getall)
-	server.POST("/", Create)
-	server.Run(":8888")
+	router := gin.Default()
+	v1 := router.Group("/api")
+	{
+		v1.GET("/", Getall)
+		v1.POST("/", Create)
+		v1.DELETE("/:id", Delete)
+		v1.PUT("/:id", Update)
+		//v1.DELETE("All", DeleteAll)
+	}
+	router.Run(":8888")
 }
 
 func Getall(c *gin.Context) {
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 	Thing := make([]ThingInfo, 0, 10)
 	ss := connect()
 	defer ss.Close()
 	err := ss.DB(db).C(collection).Find(nil).All(&Thing)
-	fmt.Println(Thing)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"status":  "failed",
@@ -71,3 +76,40 @@ func Create(c *gin.Context) {
 		"message": "Add data",
 	})
 }
+
+func Delete(c *gin.Context) {
+	id := bson.ObjectIdHex(c.Param("id"))
+	ss := connect()
+	defer ss.Close()
+	err := ss.DB(db).C(collection).Remove(bson.M{"_id": &id})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "failed",
+			"message": "Error in the Thing id",
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"message": "Delete completed!",
+	})
+}
+func Update(c *gin.Context) {
+
+}
+
+// 此段是壞的 有空一定修
+/*func DeleteAll(c *gin.Context) {
+	ss := connect()
+	defer ss.Close()
+	err := ss.DB(db).C(collection).Remove(bson.M{"_id": nil})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status":  "failed",
+			"message": "Error in the Thing id",
+		})
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"message": "Delete All completed!",
+	})
+}*/
