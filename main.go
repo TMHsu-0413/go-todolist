@@ -29,6 +29,7 @@ func connect() *mgo.Session {
 
 func main() {
 	router := gin.Default()
+	router.Use(Cors())
 	v1 := router.Group("/api")
 	{
 		v1.GET("/", Getall)
@@ -40,8 +41,27 @@ func main() {
 	router.Run(":8888")
 }
 
+func Cors() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		method := c.Request.Method
+		if method != "" {
+			// 可将将* 替换为指定的域名
+			c.Header("Access-Control-Allow-Origin", "*")
+			c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
+			c.Header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
+			c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Cache-Control, Content-Language, Content-Type")
+			c.Header("Access-Control-Allow-Credentials", "true")
+		}
+
+		if method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+		}
+
+		c.Next()
+	}
+}
+
 func Getall(c *gin.Context) {
-	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 	Thing := make([]ThingInfo, 0, 10)
 	ss := connect()
 	defer ss.Close()
